@@ -102,8 +102,8 @@ class IEEEPaper:
         issue_tag = published_in.find(
             'a', class_='stats-document-abstract-publishedIn-issue')
         if issue_tag:
-            self.issue = int(re.match(
-                'Issue: ([\S]+)', issue_tag.get_text()).group(1))
+            self.issue = re.match(
+                'Issue: ([\S]+)', issue_tag.get_text()).group(1)
         # find volume number and year
         for tag in published_in.find_all('span', text=True):
             s = tag.get_text()
