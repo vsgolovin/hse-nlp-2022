@@ -6,6 +6,7 @@ at `ieeexplore.ieee.org`.
 from collections import namedtuple
 import re
 from bs4 import BeautifulSoup
+from time import sleep
 from ieee_loader import load_paper_page
 
 
@@ -29,11 +30,19 @@ class IEEEPaper:
         self.is_open_access = False
         self.metrics = self.Metrics(0, 0, None)
 
-    def get_data(self):
+    def get_data(self, wait_time=10, attempts=5, sleep_time=10):
         """
         Load paper data by parsing its web page.
         """
-        page = load_paper_page(self.url)
+        for _ in range(attempts):
+            page = load_paper_page(self.url, wait_time)
+            if page is not None:
+                break
+            sleep(sleep_time)
+        if page is None:
+            print('Could not load page {self.url}.')
+            return
+
         page = BeautifulSoup(page, features='html.parser')
         self._find_title(page)
         self._find_authors(page)

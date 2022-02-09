@@ -24,8 +24,9 @@ def get_journal_issue():
 def main():
     for JI in get_journal_issue():
         # get new journal entry
-        fname = f'{JI.name}_{JI.year}_{JI.vol}({JI.issue}).txt'
+        fname = f'{JI.name}_{JI.year}_{JI.vol}({JI.issue}).txt'.replace('/', '-')
         fname = path.join(OUTPUT_DIR, fname)
+        print(fname)  # budget progress bar
         if path.exists(fname):  # already parsed this page
             continue
 
@@ -37,10 +38,11 @@ def main():
             authors = paper_tag.find('xpl-authors-name-list').get_text()
             if not authors:  # not a "paper" -- table of contents, intro, etc.
                 continue
-            link = paper_tag.find('h2').find('a')['href']
-            paper = IEEEPaper(link)
-            paper.get_data()  # open article webpage and parse it
-            papers.append(paper)
+            paper_link_tag = paper_tag.find('h2').find('a')
+            if paper_link_tag:
+                paper = IEEEPaper(paper_link_tag['href'])
+                paper.get_data()  # open article webpage and parse it
+                papers.append(paper)
 
         # write data to the database
         outfile = open(fname, 'w')

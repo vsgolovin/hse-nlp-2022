@@ -8,6 +8,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 WEBDRIVER_PATH = '/usr/bin/geckodriver'
 
@@ -47,6 +48,9 @@ def load_paper_page(url: str, max_wait_time: int = 10) -> str:
         WebDriverWait(driver, max_wait_time).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, 'div.abstract-text.row')))
+    except TimeoutException:
+        driver.quit()
+        return None
     finally:
         src = driver.page_source
         driver.quit()
