@@ -1,4 +1,5 @@
 import re
+from time import sleep
 from sys import stdout
 from selenium.webdriver.common.by import By
 
@@ -22,8 +23,15 @@ def parse_issue_list(driver, url, outfile=None, wait_time=10):
     # iterate over years
     for element in reversed(table.find_elements(By.TAG_NAME, 'li')):
         # get year and click on the entry to get a list of volume issues
-        year = element.find_element(By.TAG_NAME, 'a').text.strip()
+        anchor = element.find_element(By.TAG_NAME, 'a')
+        year = anchor.text.strip()
+        href = anchor.get_attribute('href')
+        if href:  # only one volumme -> URL leads directly to volume page
+            line = ','.join([year, '', '', href])
+            f.write(line + '\n')
+            continue
         element.click()
+        sleep(0.1)
 
         # find volume number
         issue_list = driver.find_element(By.CLASS_NAME, 'u-mt-2.issue-list')
