@@ -1,24 +1,23 @@
 import re
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+from sys import stdout
 from selenium.webdriver.common.by import By
 
 
-def parse_volume_list(driver, url, outfile=None):
-    def write_line(line):
-        if outfile:
-            f.write(line + '\n')
-        else:
-            print(line)
-
+def parse_issue_list(driver, url, outfile=None, wait_time=10):
     if outfile:
         f = open(outfile, 'w')
-        f.write(','.join(['Year', 'Volume', 'Issue', 'URL']))
+    else:
+        f = stdout
+    f.write(','.join(['Year', 'Volume', 'Issue', 'URL']) + '\n')
 
     # open page and find table with journal volumes
     driver.get(url)
     table = driver.find_element(By.CLASS_NAME, 'issue-details-past-tabs.year')
+
+    # accept cookies if needed
+    popup = driver.find_element(By.CLASS_NAME, 'cc-compliance')
+    if popup.is_displayed():
+        popup.click()
 
     # iterate over years
     for element in reversed(table.find_elements(By.TAG_NAME, 'li')):
@@ -37,22 +36,21 @@ def parse_volume_list(driver, url, outfile=None):
             issue = issue_element.text
             issue = re.search('Issue (\S+)', issue).group(1)
             href = issue_element.get_attribute('href')
-
             line = ','.join([year, volume, issue, href])
-            write_line(line)
+            f.write(line + '\n')
 
     if outfile:
         f.close()
 
 
-if __name__ == '__main__':
-    WEBDRIVER_PATH = '/usr/bin/chromedriver'
-    opts = Options()
-    opts.add_argument('--headless')
-    driver = webdriver.Chrome(service=Service(WEBDRIVER_PATH), options=opts)
-    driver.implicitly_wait(10)
-    driver.set_window_size(1024, 768)
-    URL = 'https://ieeexplore.ieee.org/xpl/issues?punumber=2944&isnumber=9613808'
+def parse_issue_page(driver, url, outfile=None):
+    if outfile:
+        f = open(outfile, 'w')
+    else:
+        f = stdout
 
-    parse_volume_list(driver, URL)
-    driver.quit()
+    # TODO: get all article URLs from the page
+    driver.get(url)
+
+    if outfile:
+        f.close()
