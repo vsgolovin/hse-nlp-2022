@@ -39,6 +39,7 @@ def main():
                 year, volume, issue, url = line.rstrip().split(',')
                 url = url + '&sortType=vol-only-seq&rowsPerPage=100&pageNumber=1'
                 outfile_name = f'{journal_name}_{year}_{volume}({issue}).txt'
+                outfile_name = outfile_name.replace('/', '-')
                 outfile_dir = path.join('database', journal_name)
                 if not path.exists(outfile_dir):
                     makedirs(outfile_dir)
