@@ -1,7 +1,9 @@
 from os import path, listdir, makedirs
+from time import sleep
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 import ieee
 
 WEBDRIVER_PATH = '/usr/bin/chromedriver'
@@ -50,7 +52,13 @@ def main():
 
                 # parse every paper webpage
                 outfile = open(outfile, 'w')
-                paper_urls = ieee.parse_issue_page(driver, url)
+                for _ in range(5):
+                    try:
+                        paper_urls = ieee.parse_issue_page(driver, url)
+                        break
+                    except TimeoutException:
+                        print(f'Failed to load {url}')
+                        sleep(10)
                 for paper_url in paper_urls:
                     paper = ieee.IEEEPaper(paper_url)
                     paper.get_data(driver)
