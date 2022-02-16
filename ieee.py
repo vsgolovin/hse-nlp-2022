@@ -204,7 +204,7 @@ class IEEEPaper:
 
         # DOI
         self.doi = main_tag.find(
-            'a', href=re.compile('https://doi.org/\S+$')).get_text()
+            'a', href=re.compile('https://doi\.org/\S+')).get_text().strip()
 
     def _update_metrics(self, page: BeautifulSoup):
         metrics = [0, 0, None]

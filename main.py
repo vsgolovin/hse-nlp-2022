@@ -24,7 +24,7 @@ def main():
         next(jf)  # skip header
         for line in jf:
             _, alias, url = line.strip().split(',')
-            outfile = f'urls/issues/{alias}.csv'
+            outfile = path.join('urls', 'issues', alias + '.csv')
             if not path.exists(outfile):
                 ieee.parse_issue_list(driver, url, outfile=outfile)
 
@@ -52,6 +52,7 @@ def main():
 
                 # parse every paper webpage
                 outfile = open(outfile, 'w')
+                paper_urls = []
                 for _ in range(5):
                     try:
                         paper_urls = ieee.parse_issue_page(driver, url)
@@ -59,6 +60,9 @@ def main():
                     except TimeoutException:
                         print(f'Failed to load {url}')
                         sleep(10)
+                if not paper_urls:
+                    outfile.close()
+                    raise Exception(f'Failed to load {url}')
                 for paper_url in paper_urls:
                     paper = ieee.IEEEPaper(paper_url)
                     paper.get_data(driver)
