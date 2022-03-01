@@ -21,9 +21,7 @@ def parse_issue_list(driver, url, outfile=None, wait_time=10):
     table = driver.find_element(By.CLASS_NAME, 'issue-details-past-tabs.year')
 
     # accept cookies if needed
-    popup = driver.find_element(By.CLASS_NAME, 'cc-compliance')
-    if popup.is_displayed():
-        popup.click()
+    accept_cookies(driver)
 
     # iterate over years
     for element in reversed(table.find_elements(By.TAG_NAME, 'li')):
@@ -79,6 +77,12 @@ def parse_issue_page(driver, url, wait_time=10):
     return papers
 
 
+def accept_cookies(driver):
+    popup = driver.find_element(By.CLASS_NAME, 'cc-compliance')
+    if popup.is_displayed():
+        popup.click()
+
+
 class IEEEPaper:
     URL_PREFIX = 'https://ieeexplore.ieee.org'
     Metrics = namedtuple('Metrics', ('PaperCit', 'PatentCit', 'Views'))
@@ -98,14 +102,16 @@ class IEEEPaper:
         self.doi = None
         self.is_open_access = False
         self.metrics = self.Metrics(0, 0, None)
+        self.keywords = {}
 
-    def _load_page(self, driver, wait_time=10):
-        driver.get(self.url)
+    def _load_page(self, driver, element, url=None, wait_time=10):
+        if url is None:
+            url = self.url
+        driver.get(url)
         try:
             # wait until abstract is loaded
             WebDriverWait(driver, wait_time).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'div.abstract-text.row')))
+                EC.presence_of_element_located(element))
         except TimeoutException:
             return None
         return BeautifulSoup(driver.page_source, features='html.parser')
@@ -115,7 +121,12 @@ class IEEEPaper:
         Load paper data by parsing its web page.
         """
         for _ in range(attempts):
-            page = self._load_page(driver, wait_time)
+            page = self._load_page(
+                driver=driver,
+                element=(By.CSS_SELECTOR, 'div.abstract-text.row'),
+                url=self.url,
+                wait_time=wait_time
+            )
             if page is not None:
                 break
             sleep(sleep_time)
@@ -147,6 +158,11 @@ class IEEEPaper:
         f.write(f'open access = {self.is_open_access}\n')
         f.write(f'DOI = {self.doi}\n')
         f.write(f'URL = {self.url}\n')
+        if self.keywords:
+            f.write('[paper.keywords]\n')
+            for keyword_type in sorted(self.keywords.keys()):
+                keywords = ';'.join(self.keywords[keyword_type])
+                f.write(f'{keyword_type} = {keywords}\n')
         f.write('\n')
 
     def _find_title(self, page: BeautifulSoup):
@@ -234,3 +250,40 @@ class IEEEPaper:
         tag = page.find('div', class_='document-banner-access')
         if tag and tag.find('span', text='Open Access'):
             self.is_open_access = True
+
+    def get_keywords(self, driver, wait_time=10):
+        """
+        Get the article keywords
+        """
+        assert driver.current_url == self.url.rstrip('/')
+
+        try:
+            element = WebDriverWait(driver, wait_time).until(
+                EC.presence_of_element_located((By.ID, 'keywords')))
+        except TimeoutException:
+            return
+
+        # click on the "Keywords" tab to show keywords
+        accept_cookies(driver)
+        element.click()
+        try:
+            WebDriverWait(driver, wait_time).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, 'div.stats-keywords-container')
+                )
+            )
+        except TimeoutException:
+            return
+
+        # find keywords of different types and store them in a dictionary
+        page = BeautifulSoup(driver.page_source, features='html.parser')
+        kw_block = page.find(
+            'ul', class_='doc-keywords-list stats-keywords-list')
+        if not kw_block:
+            return  # no keywords found
+        for kw_list in kw_block.find_all('li',
+                                         class_='doc-keywords-list-item'):
+            title = kw_list.find('strong').get_text()
+            keywords = [tag.get_text().split(',')[0].strip()
+                        for tag in kw_list.find_all('li')]
+            self.keywords[title] = keywords

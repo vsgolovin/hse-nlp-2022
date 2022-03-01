@@ -7,6 +7,7 @@ from selenium.common.exceptions import TimeoutException
 import ieee
 
 WEBDRIVER_PATH = '/usr/bin/chromedriver'
+ISSUE_PAGE_SUFFIX = '&sortType=vol-only-seq&rowsPerPage=100&pageNumber=1'
 
 
 def main():
@@ -39,7 +40,7 @@ def main():
             # parse every issue page
             for line in f:
                 year, volume, issue, url = line.rstrip().split(',')
-                url = url + '&sortType=vol-only-seq&rowsPerPage=100&pageNumber=1'
+                url = (url + ISSUE_PAGE_SUFFIX)
                 outfile_name = f'{journal_name}_{year}_{volume}({issue}).txt'
                 outfile_name = outfile_name.replace('/', '-')
                 outfile_dir = path.join('database', journal_name)
@@ -64,8 +65,10 @@ def main():
                     outfile.close()
                     raise Exception(f'Failed to load {url}')
                 for paper_url in paper_urls:
+                    sleep(2)
                     paper = ieee.IEEEPaper(paper_url)
                     paper.get_data(driver)
+                    paper.get_keywords(driver)
                     paper.write_entry(outfile)
                 outfile.close()
 
