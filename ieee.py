@@ -162,7 +162,7 @@ class IEEEPaper:
             f.write('[paper.keywords]\n')
             for keyword_type in sorted(self.keywords.keys()):
                 keywords = ';'.join(self.keywords[keyword_type])
-                f.write(f'{keyword_type} = {keywords}\n')
+                f.write(f'{keyword_type} = \"{keywords}\"\n')
         f.write('\n')
 
     def _find_title(self, page: BeautifulSoup):
