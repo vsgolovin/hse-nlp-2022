@@ -39,13 +39,13 @@ def parse_issue_list(driver, url, outfile=None, wait_time=10):
         # find volume number
         issue_list = driver.find_element(By.CLASS_NAME, 'u-mt-2.issue-list')
         volume = issue_list.find_element(By.TAG_NAME, 'b').text
-        volume = re.search('Volume (\S+)', volume).group(1)
+        volume = re.search(r'Volume (\S+)', volume).group(1)
 
         # find volume issues and their URLs
         for issue_element in reversed(issue_list.find_elements(By.TAG_NAME,
                                                                'a')):
             issue = issue_element.text
-            issue = re.search('Issue (\S+)', issue).group(1)
+            issue = re.search(r'Issue (\S+)', issue).group(1)
             href = issue_element.get_attribute('href')
             line = ','.join([year, volume, issue, href])
             f.write(line + '\n')
@@ -207,20 +207,20 @@ class IEEEPaper:
             'a', class_='stats-document-abstract-publishedIn-issue')
         if issue_tag:
             self.issue = re.match(
-                'Issue: ([\S]+)', issue_tag.get_text()).group(1)
+                r'Issue: ([\S]+)', issue_tag.get_text()).group(1)
         # find volume number and year
         for tag in published_in.find_all('span', text=True):
             s = tag.get_text()
-            m = re.search('Volume:\s*([\S]+)', s)
+            m = re.search(r'Volume:\s*([\S]+)', s)
             if m:
                 self.volume = m.group(1)
-            m = re.search('(?:\s+|^)([12][0-9]{3})(?:[\s,.]+|$)', s)
+            m = re.search(r'(?:\s+|^)([12][0-9]{3})(?:[\s,.]+|$)', s)
             if m:
                 self.year = int(m.group(1))
 
         # DOI
         self.doi = main_tag.find(
-            'a', href=re.compile('https://doi\.org/\S+')).get_text().strip()
+            'a', href=re.compile(r'https://doi\.org/\S+')).get_text().strip()
 
     def _update_metrics(self, page: BeautifulSoup):
         metrics = [0, 0, None]
