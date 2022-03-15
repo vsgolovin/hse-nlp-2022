@@ -8,6 +8,8 @@ import ieee
 
 WEBDRIVER_PATH = '/usr/bin/chromedriver'
 ISSUE_PAGE_SUFFIX = '&sortType=vol-only-seq&rowsPerPage=100&pageNumber=1'
+URLS_PATH = './data/urls/'
+DATABASE_PATH = './data/raw/'
 
 
 def main():
@@ -20,17 +22,17 @@ def main():
     driver.implicitly_wait(10)
 
     # parse `All Issues` page for every journal
-    journals_file = path.join('urls', 'journals.csv')
+    journals_file = path.join(URLS_PATH, 'journals.csv')
     with open(journals_file, 'r') as jf:
         next(jf)  # skip header
         for line in jf:
             _, alias, url = line.strip().split(',')
-            outfile = path.join('urls', 'issues', alias + '.csv')
+            outfile = path.join(URLS_PATH, 'issues', alias + '.csv')
             if not path.exists(outfile):
                 ieee.parse_issue_list(driver, url, outfile=outfile)
 
     # parse issue and article pages with selenium
-    issues_dir = path.join('urls', 'issues')
+    issues_dir = path.join(URLS_PATH, 'issues')
     fnames = listdir(issues_dir)  # files with issues
     for fname in fnames:
         journal_name = fname.removesuffix('.csv')
@@ -43,7 +45,7 @@ def main():
                 url = (url + ISSUE_PAGE_SUFFIX)
                 outfile_name = f'{journal_name}_{year}_{volume}({issue}).txt'
                 outfile_name = outfile_name.replace('/', '-')
-                outfile_dir = path.join('database', journal_name)
+                outfile_dir = path.join(DATABASE_PATH, journal_name)
                 if not path.exists(outfile_dir):
                     makedirs(outfile_dir)
                 outfile = path.join(outfile_dir, outfile_name)
