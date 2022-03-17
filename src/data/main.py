@@ -15,11 +15,11 @@ DATABASE_PATH = './data/raw/'
 def main():
     # launch webdriver
     opts = Options()
-    opts.add_argument('--headless')
+    # opts.add_argument('--headless')
     driver = webdriver.Chrome(service=Service(WEBDRIVER_PATH),
                               options=opts)
     driver.set_window_size(1280, 900)
-    driver.implicitly_wait(10)
+    driver.implicitly_wait(5)
 
     # parse `All Issues` page for every journal
     journals_file = path.join(URLS_PATH, 'journals.csv')

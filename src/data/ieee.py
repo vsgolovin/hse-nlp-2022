@@ -10,6 +10,33 @@ from bs4 import BeautifulSoup
 
 
 def parse_issue_list(driver, url, outfile=None, wait_time=10):
+    def parse_years(table):
+        for element in reversed(table.find_elements(By.TAG_NAME, 'li')):
+            # get year and click on the entry to get a list of volume issues
+            anchor = element.find_element(By.TAG_NAME, 'a')
+            year = anchor.text.strip()
+            href = anchor.get_attribute('href')
+            if href:  # only one volumme -> URL leads directly to volume page
+                line = ','.join([year, '', '', href])
+                f.write(line + '\n')
+                continue
+            element.click()
+            sleep(0.1)
+
+            # find volume number
+            issue_list = driver.find_element(By.CLASS_NAME, 'u-mt-2.issue-list')
+            volume = issue_list.find_element(By.TAG_NAME, 'b').text
+            volume = re.search(r'Volume (\S+)', volume).group(1)
+
+            # find volume issues and their URLs
+            for issue_element in reversed(issue_list.find_elements(By.TAG_NAME,
+                                                                'a')):
+                issue = issue_element.text
+                issue = re.search(r'Issue (\S+)', issue).group(1)
+                href = issue_element.get_attribute('href')
+                line = ','.join([year, volume, issue, href])
+                f.write(line + '\n')
+
     if outfile:
         f = open(outfile, 'w')
     else:
@@ -18,37 +45,20 @@ def parse_issue_list(driver, url, outfile=None, wait_time=10):
 
     # open page and find table with journal volumes
     driver.get(url)
-    table = driver.find_element(By.CLASS_NAME, 'issue-details-past-tabs.year')
+    tabs = driver.find_element(By.CLASS_NAME, 'issue-details-past-tabs')
 
     # accept cookies if needed
     accept_cookies(driver)
 
-    # iterate over years
-    for element in reversed(table.find_elements(By.TAG_NAME, 'li')):
-        # get year and click on the entry to get a list of volume issues
-        anchor = element.find_element(By.TAG_NAME, 'a')
-        year = anchor.text.strip()
-        href = anchor.get_attribute('href')
-        if href:  # only one volumme -> URL leads directly to volume page
-            line = ','.join([year, '', '', href])
-            f.write(line + '\n')
-            continue
-        element.click()
-        sleep(0.1)
-
-        # find volume number
-        issue_list = driver.find_element(By.CLASS_NAME, 'u-mt-2.issue-list')
-        volume = issue_list.find_element(By.TAG_NAME, 'b').text
-        volume = re.search(r'Volume (\S+)', volume).group(1)
-
-        # find volume issues and their URLs
-        for issue_element in reversed(issue_list.find_elements(By.TAG_NAME,
-                                                               'a')):
-            issue = issue_element.text
-            issue = re.search(r'Issue (\S+)', issue).group(1)
-            href = issue_element.get_attribute('href')
-            line = ','.join([year, volume, issue, href])
-            f.write(line + '\n')
+    if tabs.get_attribute('class').endswith('year'):
+        parse_years(tabs)
+    else:
+        for element in reversed(tabs.find_elements(By.TAG_NAME, 'li')):
+            element.click()
+            sleep(0.1)
+            table = driver.find_element(By.CLASS_NAME,
+                                        'issue-details-past-tabs.year')
+            parse_years(table)
 
     if outfile:
         f.close()
