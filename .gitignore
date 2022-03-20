@@ -1,8 +1,8 @@
 # store database separately
 data/raw/*
+data/interim/*
 data/processed/*
-!data/raw/.keep
-!data/processed/*
+!data/*/.keep
 
 
 # Generic Python .gitignore

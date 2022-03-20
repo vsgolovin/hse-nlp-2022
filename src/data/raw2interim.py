@@ -1,10 +1,37 @@
 import re
-from typing import Generator
-from os import path, listdir, getcwd
+from typing import Generator, NoReturn, TextIO
+import os
 
 
-RAW_DATA_PATH = path.join(getcwd(), 'data', 'raw')
-INTERIM_DATA_PATH = path.join(getcwd(), 'data', 'interim')
+RAW_DATA_PATH = os.path.join(os.getcwd(), 'data', 'raw')
+INTERIM_DATA_PATH = os.path.join(os.getcwd(), 'data', 'interim')
+
+
+def main():
+    # every directory is a journal name
+    for journal in os.listdir(RAW_DATA_PATH):
+        input_path = os.path.join(RAW_DATA_PATH, journal)
+        if not os.path.isdir(input_path):
+            continue
+
+        # process each journal separately and save results to a single file
+        new_file = os.path.join(INTERIM_DATA_PATH, journal + '.txt')
+        with open(new_file, 'w') as outfile:
+            for input_file in os.listdir(input_path):
+                input_file_full_path = os.path.join(input_path, input_file)
+                for entry in read_db_file(input_file_full_path):
+                    dct = read_raw_entry(entry)  # paper data
+                    # check of both abstract and IEEE keywords are present
+                    if (
+                        dct['abstract'] == 'None'
+                        or 'keywords' not in dct
+                        or 'IEEE Keywords' not in dct['keywords']
+                    ):
+                        continue  # skip this paper
+                    # replace newlines with spaces
+                    dct['abstract'] = str.replace(dct['abstract'], '\n', ' ')
+                    # write updated entry to file
+                    write_interim_entry(outfile, dct)
 
 
 def read_db_file(filename: str) -> Generator[str, None, None]:
@@ -39,7 +66,7 @@ def read_raw_entry(s: str) -> dict:
     keys = ('title', 'authors', 'journal', 'year', 'volume', 'issue')
     for i, key in enumerate(keys):
         m = re.match(key + ' = (.+)', lines[i + 1])
-        dct[key] = m.group() if m is not None else ''
+        dct[key] = m.groups()[0] if m is not None else ''
 
     # find abstract
     m = re.search('abstract = \"((?s:.+?))\"', s)
@@ -72,36 +99,16 @@ def read_raw_entry(s: str) -> dict:
     return dct
 
 
-def process_abstract(s: str) -> str:
-    if s == 'None':
-        return s
-    table = (
-        ('\n', ' '),
-    )
-    for old, new in table:
-        s = s.replace(old, new)
-    return s
+def write_interim_entry(outfile: TextIO, paper_entry: dict) -> NoReturn:
+    outfile.write('[paper]\n')
+    keys = ('title', 'authors', 'journal', 'year', 'volume', 'issue',
+            'abstract', 'paper citations', 'patent citations',
+            'full text views', 'open access', 'DOI', 'URL')
+    for key in keys:
+        outfile.write(f'{key} = {paper_entry[key]}\n')
+    keywords_str = ';'.join(paper_entry['keywords']['IEEE Keywords'])
+    outfile.write(f'IEEE Keywords = {keywords_str}\n\n')
 
 
 if __name__ == '__main__':
-    from functools import reduce
-
-    journals = ['ieee-tac', 'ieee-ted', 'ieee-proc']
-    kw = []
-    for journal in journals:
-        data_dir = path.join(RAW_DATA_PATH, journal)
-        keywords = set()
-        for filename in listdir(data_dir):
-            if not filename.endswith('.txt'):
-                continue
-            entries = read_db_file(path.join(data_dir, filename))
-            for entry in entries:
-                d = read_raw_entry(entry)
-                d['abstract'] = process_abstract(d['abstract'])
-                if 'keywords' in d and 'IEEE Keywords' in d['keywords']:
-                    keywords.update(d['keywords']['IEEE Keywords'])
-        kw.append(keywords)
-    for j, keywords in zip(journals, kw):
-        print(j, len(keywords))
-    keywords = reduce(lambda a, b: set.union(a, b), kw)
-    print(f'total: {len(keywords)}')
+    main()
