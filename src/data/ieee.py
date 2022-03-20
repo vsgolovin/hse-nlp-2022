@@ -24,13 +24,14 @@ def parse_issue_list(driver, url, outfile=None, wait_time=10):
             sleep(0.1)
 
             # find volume number
-            issue_list = driver.find_element(By.CLASS_NAME, 'u-mt-2.issue-list')
+            issue_list = driver.find_element(By.CLASS_NAME,
+                                             'u-mt-2.issue-list')
             volume = issue_list.find_element(By.TAG_NAME, 'b').text
             volume = re.search(r'Volume (\S+)', volume).group(1)
 
             # find volume issues and their URLs
             for issue_element in reversed(issue_list.find_elements(By.TAG_NAME,
-                                                                'a')):
+                                                                   'a')):
                 issue = issue_element.text
                 issue = re.search(r'Issue (\S+)', issue).group(1)
                 href = issue_element.get_attribute('href')
