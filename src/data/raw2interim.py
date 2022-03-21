@@ -30,6 +30,7 @@ def main():
                         continue  # skip this paper
                     # replace newlines with spaces
                     dct['abstract'] = str.replace(dct['abstract'], '\n', ' ')
+                    dct['abstract'] = str.replace(dct['abstract'], '"', '""')
                     # write updated entry to file
                     write_interim_entry(outfile, dct)
 
@@ -69,7 +70,7 @@ def read_raw_entry(s: str) -> dict:
         dct[key] = m.groups()[0] if m is not None else ''
 
     # find abstract
-    m = re.search('abstract = \"((?s:.+?))\"', s)
+    m = re.search('abstract = \"((?s:.+?))\"\n', s)
     assert m and len(m.groups()) == 1
     dct['abstract'] = m[1]
 
