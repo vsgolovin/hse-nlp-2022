@@ -31,7 +31,7 @@ def main():
 
 def process_abstract(s: str) -> str:
     # make lowercase
-    # s = s.lower()  # done in stemmer
+    s = s.lower()  # done in stemmer
 
     # remove all backslash sequences
     s = re.sub(r'\\[\S]+', '', s)
@@ -53,8 +53,8 @@ def process_abstract(s: str) -> str:
     # s = re.sub(r'\s+', ' ', s)  # done in stemmer
 
     # perform stemming
-    stemmer = SnowballStemmer('english', ignore_stopwords=False)
-    s = ' '.join(stemmer.stem(word) for word in re.split(r'\s+', s))
+    # stemmer = SnowballStemmer('english', ignore_stopwords=False)
+    # s = ' '.join(stemmer.stem(word) for word in re.split(r'\s+', s))
 
     return s
 
