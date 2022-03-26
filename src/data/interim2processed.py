@@ -8,7 +8,7 @@ PROCESSED_DATA_PATH = os.path.join(os.getcwd(), 'data', 'processed')
 
 
 def main():
-    journals = ('ieee-proc', 'ieee-tac', 'ieee-ted')
+    journals = ('ieee-proc', 'ieee-tac', 'ieee-ted', 'ieee-tcom')
     NUM_KEYWORDS = 150
     OUTPUT_DB_FILE = 'dataset.csv'
     OUTPUT_KW_FILE = 'keywords.txt'
