@@ -6,7 +6,7 @@ from torch import nn
 import pandas as pd
 import matplotlib.pyplot as plt
 from dataset_loader import AbstractsDataset
-from metrics import calculate_metrics_mean
+from metrics import calculate_metrics_mean, Metrics
 
 
 DATA_DIR = path.join(getcwd(), 'data', 'processed')
@@ -62,20 +62,20 @@ def main():
     plt.ylabel('Loss')
 
     plt.figure()
-    plt.plot(train_metrics[:, 0])
-    plt.plot(val_metrics[:, 0])
+    plt.plot(train_metrics.accuracy)
+    plt.plot(val_metrics.accuracy)
     plt.xlabel('Epoch')
     plt.ylabel('Mean accuracy')
 
     plt.figure()
-    plt.plot(train_metrics[:, 1])
-    plt.plot(val_metrics[:, 1])
+    plt.plot(train_metrics.precision)
+    plt.plot(val_metrics.precision)
     plt.xlabel('Epoch')
     plt.ylabel('Mean precision')
 
     plt.figure()
-    plt.plot(train_metrics[:, 2])
-    plt.plot(val_metrics[:, 2])
+    plt.plot(train_metrics.recall)
+    plt.plot(val_metrics.recall)
     plt.xlabel('Epoch')
     plt.ylabel('Mean recall')
 
@@ -114,78 +114,83 @@ def train(model, train_dataset, val_dataset, device, epochs=20, lr=1e-3):
         print(f'Epoch {i}')
 
         # train loop
-        losses = []
-        accuracies = []
-        precision_values = []
-        recall_values = []
-        batch_sizes = []
-        for X_j, y_j in train_dataset:
-            # forward loop
-            X_j = torch.tensor(X_j, dtype=torch.float32, device=device)
-            y_j = torch.tensor(y_j, dtype=torch.float32, device=device)
-            output = model.forward(X_j)
-            loss = loss_function(output, y_j)
-            # evaluate and save metrics
-            losses.append(loss.item())
-            predicted = np.round(output.cpu().detach().numpy()).astype('uint8')
-            m = calculate_metrics_mean(
-                predicted, y_j.cpu().numpy().astype('uint8'))
-            accuracies.append(m.accuracy)
-            precision_values.append(m.precision)
-            recall_values.append(m.recall)
-            batch_sizes.append(X_j.shape[0])
+        loss, acc, prec, rec = single_pass(
+            model=model,
+            dataset=train_dataset,
+            device=device,
+            loss_function=loss_function,
+            optimizer=optimizer
+        )
+        print(f'Train: loss = {loss:.3f},', end=' ')
+        print(f'acc = {acc:.3f}, prec = {prec:.3f}, rec = {rec:.3f}')
+        train_losses[i] = loss
+        train_metrics[i, :] = acc, prec, rec
+
+        # validation loop
+        with torch.no_grad():
+            loss, acc, prec, rec = single_pass(
+                model=model,
+                dataset=val_dataset,
+                device=device,
+                loss_function=loss_function,
+                optimizer=None
+            )
+        print(f'Validation: loss = {loss:.3f},', end=' ')
+        print(f'acc = {acc:.3f}, prec = {prec:.3f}, rec = {rec:.3f}')
+        val_losses[i] = loss
+        val_metrics[i, :] = acc, prec, rec
+        print()
+
+    train_metrics = Metrics(
+        accuracy=train_metrics[:, 0],
+        precision=train_metrics[:, 1],
+        recall=train_metrics[:, 2]
+    )
+    val_metrics = Metrics(
+        accuracy=val_metrics[:, 0],
+        precision=val_metrics[:, 1],
+        recall=val_metrics[:, 2]
+    )
+
+    return train_losses, val_losses, train_metrics, val_metrics
+
+
+def single_pass(model, dataset, device, loss_function, optimizer=None):
+    # train loop
+    losses = []
+    accuracies = []
+    precision_values = []
+    recall_values = []
+    batch_sizes = []
+    for X_j, y_j in dataset:
+        # forward loop
+        X_j = torch.tensor(X_j, dtype=torch.float32, device=device)
+        y_j = torch.tensor(y_j, dtype=torch.float32, device=device)
+        output = model.forward(X_j)
+        loss = loss_function(output, y_j)
+        # evaluate and save metrics
+        losses.append(loss.item())
+        predicted = np.round(output.cpu().detach().numpy()).astype('uint8')
+        m = calculate_metrics_mean(
+            predicted, y_j.cpu().numpy().astype('uint8'))
+        accuracies.append(m.accuracy)
+        precision_values.append(m.precision)
+        recall_values.append(m.recall)
+        batch_sizes.append(X_j.shape[0])
+
+        if optimizer is not None:
             # backpropagation
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-        weights = np.array(batch_sizes) / sum(batch_sizes)
-        train_losses[i] = sum(x * w for x, w in zip(losses, weights))
-        train_metrics[i] = (
-            sum(x * w for x, w in zip(accuracies, weights)),
-            sum(x * w for x, w in zip(precision_values, weights)),
-            sum(x * w for x, w in zip(recall_values, weights))
-        )
-        print(f'Train: loss = {train_losses[i]:.3f},', end=' ')
-        print('acc = {:.3f}, prec = {:.3f}, rec = {:.3f}'.format(
-            *train_metrics[i]))
-
-        # validation loop
-        losses = []
-        accuracies = []
-        precision_values = []
-        recall_values = []
-        batch_sizes = []
-        with torch.no_grad():
-            for X_j, y_j in val_dataset:
-                # forward loop
-                X_j = torch.tensor(X_j, dtype=torch.float32, device=device)
-                y_j = torch.tensor(y_j, dtype=torch.float32, device=device)
-                output = model.forward(X_j)
-                loss = loss_function(output, y_j)
-                # evaluate and save metrics
-                losses.append(loss.item())
-                predicted = np.round(output.cpu().numpy()).astype('uint8')
-                m = calculate_metrics_mean(
-                    predicted, y_j.cpu().numpy().astype('uint8'))
-                accuracies.append(m.accuracy)
-                precision_values.append(m.precision)
-                recall_values.append(m.recall)
-                batch_sizes.append(X_j.shape[0])
-
-        weights = np.array(batch_sizes) / sum(batch_sizes)
-        val_losses[i] = sum(x * w for x, w in zip(losses, weights))
-        val_metrics[i] = (
-            sum(x * w for x, w in zip(accuracies, weights)),
-            sum(x * w for x, w in zip(precision_values, weights)),
-            sum(x * w for x, w in zip(recall_values, weights))
-        )
-        print(f'Validation: loss = {val_losses[i]:.3f},', end=' ')
-        print('acc = {:.3f}, prec = {:.3f}, rec = {:.3f}'.format(
-            *val_metrics[i]))
-        print()
-
-    return train_losses, val_losses, train_metrics, val_metrics
+    batch_sizes = np.array(batch_sizes)
+    num_samples = np.sum(batch_sizes)
+    loss = np.sum(np.array(losses) * batch_sizes) / num_samples
+    accuracy = np.sum(np.array(accuracies) * batch_sizes) / num_samples
+    precision = np.sum(np.array(precision_values) * batch_sizes) / num_samples
+    recall = np.sum(np.array(recall_values * batch_sizes)) / num_samples
+    return loss, accuracy, precision, recall
 
 
 if __name__ == '__main__':
