@@ -10,13 +10,13 @@ from metrics import calculate_metrics_mean, Metrics
 
 
 DATA_DIR = path.join(getcwd(), 'data', 'processed')
-VOCAB_SIZE = None
+VOCAB_SIZE = 8192  # `None` to use all words
 DATASET = 'top5'
 BATCH_SIZE = 2048
 LEARNING_RATE = 1e-3
 HIDDEN_IN = 1024
 HIDDEN_OUT = 512
-EPOCHS = 20
+EPOCHS = 50
 
 
 def main():
@@ -54,31 +54,23 @@ def main():
         lr=LEARNING_RATE
     )
 
+    # evaluate model on test dataset
+    test_loss, test_acc, test_prec, test_rec = single_pass(
+        model, test_dataset, device, nn.BCELoss(), None
+    )
+
     # plot results
-    plt.figure()
-    plt.plot(train_losses)
-    plt.plot(val_losses)
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-
-    plt.figure()
-    plt.plot(train_metrics.accuracy)
-    plt.plot(val_metrics.accuracy)
-    plt.xlabel('Epoch')
-    plt.ylabel('Mean accuracy')
-
-    plt.figure()
-    plt.plot(train_metrics.precision)
-    plt.plot(val_metrics.precision)
-    plt.xlabel('Epoch')
-    plt.ylabel('Mean precision')
-
-    plt.figure()
-    plt.plot(train_metrics.recall)
-    plt.plot(val_metrics.recall)
-    plt.xlabel('Epoch')
-    plt.ylabel('Mean recall')
-
+    _, ax1 = plt.subplots()
+    ax1 = plot_results(ax1, train_losses, val_losses, test_loss, 'Loss')
+    _, ax2 = plt.subplots()
+    ax2 = plot_results(ax2, train_metrics.accuracy, val_metrics.accuracy,
+                       test_acc, 'Accuracy')
+    _, ax3 = plt.subplots()
+    ax3 = plot_results(ax3, train_metrics.precision, val_metrics.precision,
+                       test_prec, 'Precision')
+    _, ax4 = plt.subplots()
+    ax4 = plot_results(ax4, train_metrics.recall, val_metrics.recall,
+                       test_rec, 'Recall')
     plt.show()
 
 
@@ -111,7 +103,7 @@ def train(model, train_dataset, val_dataset, device, epochs=20, lr=1e-3):
     loss_function = nn.BCELoss()
 
     for i in range(epochs):
-        print(f'Epoch {i}')
+        print(f'Epoch {i + 1}')
 
         # train loop
         loss, acc, prec, rec = single_pass(
@@ -121,6 +113,7 @@ def train(model, train_dataset, val_dataset, device, epochs=20, lr=1e-3):
             loss_function=loss_function,
             optimizer=optimizer
         )
+        train_dataset.shuffle()
         print(f'Train: loss = {loss:.3f},', end=' ')
         print(f'acc = {acc:.3f}, prec = {prec:.3f}, rec = {rec:.3f}')
         train_losses[i] = loss
@@ -191,6 +184,18 @@ def single_pass(model, dataset, device, loss_function, optimizer=None):
     precision = np.sum(np.array(precision_values) * batch_sizes) / num_samples
     recall = np.sum(np.array(recall_values * batch_sizes)) / num_samples
     return loss, accuracy, precision, recall
+
+
+def plot_results(ax, train_results, val_results, test_result, label):
+    epochs = np.arange(1, len(train_results) + 1)
+    ax.plot(epochs, train_results, label='train')
+    ax.plot(epochs, val_results, label='validation')
+    ax.plot(epochs[-1], test_result,
+            marker='o', linestyle='none', label='test')
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel(label)
+    ax.grid(linestyle=':')
+    ax.legend()
 
 
 if __name__ == '__main__':
