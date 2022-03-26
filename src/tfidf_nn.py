@@ -6,7 +6,7 @@ from torch import nn
 import pandas as pd
 import matplotlib.pyplot as plt
 from dataset_loader import AbstractsDataset
-from metrics import calculate_metrics
+from metrics import calculate_metrics_mean
 
 
 DATA_DIR = path.join(getcwd(), 'data', 'processed')
@@ -30,14 +30,13 @@ def main():
 
     # train-validate-test split
     inds = np.random.permutation(df.shape[0])
-    i1, i2 = (df.shape[0] * np.array([0.9, 0.95])).astype(int) 
+    i1, i2 = (df.shape[0] * np.array([0.9, 0.95])).astype(int)
     train_dataset = AbstractsDataset(X[inds[:i1]], y[inds[:i1]], BATCH_SIZE)
     val_dataset = AbstractsDataset(X[inds[i1:i2]], y[inds[i1:i2]], BATCH_SIZE)
     test_dataset = AbstractsDataset(X[inds[i2:]], y[inds[i2:]], BATCH_SIZE)
 
     # choose device and initialize model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(device)
     model = Model(
         num_features=X.shape[1],
         num_labels=y.shape[1],
@@ -129,10 +128,11 @@ def train(model, train_dataset, val_dataset, device, epochs=20, lr=1e-3):
             # evaluate and save metrics
             losses.append(loss.item())
             predicted = np.round(output.cpu().detach().numpy()).astype('uint8')
-            m = calculate_metrics(predicted, y_j.cpu().numpy().astype('uint8'))
-            accuracies.append(m.accuracy.mean())
-            precision_values.append(m.precision.mean())
-            recall_values.append(m.recall.mean())
+            m = calculate_metrics_mean(
+                predicted, y_j.cpu().numpy().astype('uint8'))
+            accuracies.append(m.accuracy)
+            precision_values.append(m.precision)
+            recall_values.append(m.recall)
             batch_sizes.append(X_j.shape[0])
             # backpropagation
             optimizer.zero_grad()
@@ -166,11 +166,11 @@ def train(model, train_dataset, val_dataset, device, epochs=20, lr=1e-3):
                 # evaluate and save metrics
                 losses.append(loss.item())
                 predicted = np.round(output.cpu().numpy()).astype('uint8')
-                m = calculate_metrics(predicted,
-                                      y_j.cpu().numpy().astype('uint8'))
-                accuracies.append(m.accuracy.mean())
-                precision_values.append(m.precision.mean())
-                recall_values.append(m.recall.mean())
+                m = calculate_metrics_mean(
+                    predicted, y_j.cpu().numpy().astype('uint8'))
+                accuracies.append(m.accuracy)
+                precision_values.append(m.precision)
+                recall_values.append(m.recall)
                 batch_sizes.append(X_j.shape[0])
 
         weights = np.array(batch_sizes) / sum(batch_sizes)

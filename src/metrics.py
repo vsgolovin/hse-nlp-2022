@@ -31,6 +31,34 @@ def calculate_metrics(predicted: np.ndarray, answer: np.ndarray) -> Metrics:
     return Metrics(accuracy, precision, recall)
 
 
+def calculate_metrics_mean(predicted: np.ndarray,
+                           answer: np.ndarray) -> Metrics:
+    assert predicted.shape == answer.shape
+    size = 1
+    for x in predicted.shape:
+        size *= x
+
+    mask_pred = (predicted == 1)
+    mask_ans = (answer == 1)
+    true_positives = (mask_pred & mask_ans).sum()
+    true_negatives = (~mask_pred & ~mask_ans).sum()
+    accuracy = (true_positives + true_negatives) / size
+
+    actual_positives = mask_ans.sum()
+    if actual_positives > 0:
+        precision = true_positives / actual_positives
+    else:
+        precision = np.nan
+
+    predicted_positives = mask_pred.sum()
+    if predicted_positives > 0:
+        recall = true_positives / predicted_positives
+    else:
+        recall = np.nan
+
+    return Metrics(accuracy, precision, recall)
+
+
 if __name__ == '__main__':
     # run some tests
     y = np.array([[0, 1], [1, 0], [0, 1]])
