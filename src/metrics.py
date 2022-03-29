@@ -45,14 +45,14 @@ def calculate_metrics_mean(predicted: np.ndarray,
     accuracy = (true_positives + true_negatives) / size
 
     precision = 0.0
-    actual_positives = mask_ans.sum()
-    if actual_positives > 0:
-        precision = true_positives / actual_positives
-
-    recall = 0.0
     predicted_positives = mask_pred.sum()
     if predicted_positives > 0:
-        recall = true_positives / predicted_positives
+        precision = true_positives / predicted_positives
+
+    recall = 0.0
+    actual_positives = mask_ans.sum()
+    if actual_positives > 0:
+        recall = true_positives / actual_positives
 
     return Metrics(accuracy, precision, recall)
 
