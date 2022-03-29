@@ -23,10 +23,11 @@ def main():
     for n in NUM_KEYWORDS:
         mask = Y[:, :n].any(axis=1)
         print(f'{n} top keywords: {np.sum(mask)} abstracts')
-        df_slice = df[mask]
-        fname = 'processed_dataset_top'
+        df_slice = df[mask].copy()
+        for _, row in df_slice.iterrows():
+            row['keywords'] = row['keywords'][:n]
         fname = os.path.join(DATA_DIR, f'top{n}.csv')
-        df_slice.to_csv(fname, index=False)
+        df_slice.to_csv(fname, index=False, quotechar='"')
 
 
 def process_abstract(s: str) -> str:

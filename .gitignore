@@ -4,6 +4,8 @@ data/interim/*
 data/processed/*
 !data/*/.keep
 
+# Visual Studio Code
+.vscode
 
 # Generic Python .gitignore
 
