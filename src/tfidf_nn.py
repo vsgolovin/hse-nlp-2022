@@ -10,13 +10,13 @@ from metrics import calculate_metrics_mean, Metrics
 
 
 DATA_DIR = path.join(getcwd(), 'data', 'processed')
-VOCAB_SIZE = 8192  # `None` to use all words
+VOCAB_SIZE = 2048  # `None` to use all words
 DATASET = 'top5'
-BATCH_SIZE = 2048
-LEARNING_RATE = 1e-3
+BATCH_SIZE = 256
+LEARNING_RATE = 1e-4
 HIDDEN_IN = 1024
 HIDDEN_OUT = 512
-EPOCHS = 15
+EPOCHS = 50
 
 
 def main():
