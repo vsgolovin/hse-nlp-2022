@@ -9,7 +9,7 @@ from metrics import calculate_metrics_mean
 
 
 DATA_DIR = path.join(getcwd(), 'data', 'processed')
-VOCAB_SIZE = 8192  # `None` to use all words
+VOCAB_SIZE = 2048  # `None` to use all words
 DATASET = 'top5'
 
 
@@ -34,7 +34,7 @@ def main():
     )
     settings = (
         {},
-        dict(max_depth=3, min_samples_leaf=5),
+        dict(max_depth=7, min_samples_leaf=5),
         {}
     )
     names = (
